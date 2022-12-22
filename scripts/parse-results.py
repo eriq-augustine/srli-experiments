@@ -23,6 +23,7 @@ HEADER = [
     'runtime',
     'learn_time',
     'infer_time',
+    'timeout',
     'eval',
 ]
 
@@ -33,6 +34,8 @@ def parseLog(logPath):
     # Fetch the run identifiers off of the path.
     for (key, value) in re.findall(r'([\w\-]+)::([\w\-]+)', logPath):
         results[key] = value
+
+    results['timeout'] = False
 
     startTime = None
     learnStartTime = None
@@ -47,6 +50,10 @@ def parseLog(logPath):
             line = line.strip()
             if (line == ''):
                 continue
+
+            match = re.search(r'^-- TIMEOUT --$', line)
+            if (match is not None):
+                results['timeout'] = True
 
             match = re.search(r'^(\d+) -- Starting learning engine.$', line)
             if (match is not None):
@@ -88,6 +95,11 @@ def parseLog(logPath):
         results['runtime'] = learnTime + inferTime
         results['learn_time'] = learnTime
         results['infer_time'] = inferTime
+    elif (results['timeout']):
+        # A timeout.
+        results['runtime'] = -2
+        results['learn_time'] = -2
+        results['infer_time'] = -2
     else:
         # An incomplete run.
         results['runtime'] = -1

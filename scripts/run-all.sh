@@ -11,16 +11,28 @@ readonly RUN_ID='all'
 
 readonly NUM_RUNS=1
 
-
-readonly SKIP_EXAMPLES='imdb-er'
+readonly SMALL_EXAMPLES='smokers stance-createdebate stance-4forums simple-acquaintances user-modeling citeseer cora friendship trust-prediction epinions social-network-analysis'
+readonly MEDIUM_EXAMPLES='jester knowledge-graph-identification'
+readonly LARGE_EXAMPLES='entity-resolution drug-drug-interaction yelp lastfm'
+readonly HUGE_EXAMPLES='imdb-er'
 
 # TEST
-# readonly ENGINES='PSL MLN_Native MLN_PySAT ProbLog Tuffy'
-# readonly ENGINES='PSL MLN_Native MLN_PySAT Tuffy'
-readonly ENGINES='PSL'
+readonly RUN_EXAMPLES="${SMALL_EXAMPLES} ${MEDIUM_EXAMPLES} ${LARGE_EXAMPLES}"
+# readonly RUN_EXAMPLES="${SMALL_EXAMPLES}"
+
+# TEST
+# readonly ENGINES='PSL MLN_Native MLN_PySAT ProbLog ProbLog_NonCollective Tuffy Logic_Weighted_Discrete Random_Continuous Random_Discrete'
+readonly ENGINES='PSL MLN_Native MLN_PySAT ProbLog_NonCollective Tuffy Logic_Weighted_Discrete Random_Continuous Random_Discrete'
+# readonly ENGINES='Random_Continuous Random_Discrete'
+# readonly ENGINES='ProbLog_NonCollective'
+# readonly ENGINES='ProbLog'
+# readonly ENGINES='PSL'
 
 declare -A ENGINE_OPTIONS
 ENGINE_OPTIONS['PSL']='--option runtime.log.level DEBUG --option runtime.db.type Postgres --option runtime.db.pg.name psl'
+
+readonly TIMEOUT_DURATION='2h'
+readonly TIMEOUT_CLEANUP_TIME='5m'
 
 function run_srli() {
     local jsonConfigPath=$1
@@ -40,7 +52,12 @@ function run_srli() {
     fi
 
     date +%s > "${startPath}"
-    python3 -m srli.pipeline "${jsonConfigPath}" ${options} > "${outPath}" 2> "${errPath}"
+
+    timeout --kill-after "${TIMEOUT_CLEANUP_TIME}" "${TIMEOUT_DURATION}" python3 -m srli.pipeline "${jsonConfigPath}" ${options} > "${outPath}" 2> "${errPath}"
+    if [[ $? -eq 124 ]] ; then
+        echo '-- TIMEOUT --' >> "${outPath}"
+    fi
+
     date +%s > "${endPath}"
 }
 
@@ -50,10 +67,6 @@ function run_example() {
 
     local exampleName=$(basename "${jsonConfigPath}" | sed 's/.json$//')
     local baseOutDir="${BASE_OUT_DIR}/experiment::${RUN_ID}/example::${exampleName}/iteration::${iterationID}"
-
-    if [[ "${SKIP_EXAMPLES}" == *"${exampleName}"* ]] ; then
-        return
-    fi
 
     for engine in ${ENGINES} ; do
         local outDir="${baseOutDir}/engine::${engine}"
@@ -77,9 +90,8 @@ function main() {
     trap exit SIGINT
 
     for i in `seq -w 1 ${NUM_RUNS}`; do
-        # TEST
-        for jsonConfigPath in "${EXAMPLES_DIR}"/*/cli/*.json ; do
-        # for jsonConfigPath in "${EXAMPLES_DIR}"/simple*/cli/*.json ; do
+        for example in ${RUN_EXAMPLES} ; do
+            jsonConfigPath="${EXAMPLES_DIR}/${example}/cli/${example}.json"
             run_example "${jsonConfigPath}" "${i}"
         done
     done
