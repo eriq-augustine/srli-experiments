@@ -17,12 +17,15 @@ readonly LARGE_EXAMPLES='entity-resolution drug-drug-interaction yelp lastfm'
 readonly HUGE_EXAMPLES='imdb-er'
 
 # TEST
-readonly RUN_EXAMPLES="${SMALL_EXAMPLES} ${MEDIUM_EXAMPLES} ${LARGE_EXAMPLES}"
+# readonly RUN_EXAMPLES="${SMALL_EXAMPLES} ${MEDIUM_EXAMPLES} ${LARGE_EXAMPLES}"
 # readonly RUN_EXAMPLES="${SMALL_EXAMPLES}"
+readonly RUN_EXAMPLES="entity-resolution"
 
 # TEST
 # readonly ENGINES='PSL MLN_Native MLN_PySAT ProbLog ProbLog_NonCollective Tuffy Logic_Weighted_Discrete Random_Continuous Random_Discrete'
-readonly ENGINES='PSL MLN_Native MLN_PySAT ProbLog_NonCollective Tuffy Logic_Weighted_Discrete Random_Continuous Random_Discrete'
+# Engines roughly supported by chance of working.
+# readonly ENGINES='Random_Continuous Random_Discrete PSL Logic_Weighted_Discrete MLN_Native MLN_PySAT ProbLog_NonCollective Tuffy ProbLog'
+readonly ENGINES='Random_Continuous Random_Discrete PSL Logic_Weighted_Discrete MLN_Native MLN_PySAT ProbLog_NonCollective Tuffy'
 # readonly ENGINES='Random_Continuous Random_Discrete'
 # readonly ENGINES='ProbLog_NonCollective'
 # readonly ENGINES='ProbLog'
@@ -31,7 +34,7 @@ readonly ENGINES='PSL MLN_Native MLN_PySAT ProbLog_NonCollective Tuffy Logic_Wei
 declare -A ENGINE_OPTIONS
 ENGINE_OPTIONS['PSL']='--option runtime.log.level DEBUG --option runtime.db.type Postgres --option runtime.db.pg.name psl'
 
-readonly TIMEOUT_DURATION='2h'
+readonly TIMEOUT_DURATION='3h'
 readonly TIMEOUT_CLEANUP_TIME='5m'
 
 function run_srli() {
