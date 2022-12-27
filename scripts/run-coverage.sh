@@ -17,9 +17,8 @@ readonly LARGE_EXAMPLES='entity-resolution drug-drug-interaction yelp lastfm'
 readonly HUGE_EXAMPLES='imdb-er'
 
 # TEST
-# readonly RUN_EXAMPLES="${SMALL_EXAMPLES} ${MEDIUM_EXAMPLES} ${LARGE_EXAMPLES}"
+readonly RUN_EXAMPLES="${SMALL_EXAMPLES} ${MEDIUM_EXAMPLES} ${LARGE_EXAMPLES}"
 # readonly RUN_EXAMPLES="${SMALL_EXAMPLES}"
-readonly RUN_EXAMPLES="entity-resolution"
 
 # TEST
 # readonly ENGINES='PSL MLN_Native MLN_PySAT ProbLog ProbLog_NonCollective Tuffy Logic_Weighted_Discrete Random_Continuous Random_Discrete'
