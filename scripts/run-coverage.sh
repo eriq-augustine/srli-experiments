@@ -7,7 +7,7 @@ readonly BASE_OUT_DIR="${THIS_DIR}/../results"
 readonly EXAMPLES_DIR="${THIS_DIR}/../psl-examples"
 
 # An identifier to differentiate the output of this script/experiment from other scripts.
-readonly RUN_ID='all'
+readonly RUN_ID='coverage'
 
 readonly NUM_RUNS=1
 
@@ -16,24 +16,22 @@ readonly MEDIUM_EXAMPLES='jester knowledge-graph-identification'
 readonly LARGE_EXAMPLES='entity-resolution drug-drug-interaction yelp lastfm'
 readonly HUGE_EXAMPLES='imdb-er'
 
-# TEST
 readonly RUN_EXAMPLES="${SMALL_EXAMPLES} ${MEDIUM_EXAMPLES} ${LARGE_EXAMPLES}"
-# readonly RUN_EXAMPLES="${SMALL_EXAMPLES}"
 
-# TEST
-# readonly ENGINES='PSL MLN_Native MLN_PySAT ProbLog ProbLog_NonCollective Tuffy Logic_Weighted_Discrete Random_Continuous Random_Discrete'
-# Engines roughly supported by chance of working.
 # readonly ENGINES='Random_Continuous Random_Discrete PSL Logic_Weighted_Discrete MLN_Native MLN_PySAT ProbLog_NonCollective Tuffy ProbLog'
 readonly ENGINES='Random_Continuous Random_Discrete PSL Logic_Weighted_Discrete MLN_Native MLN_PySAT ProbLog_NonCollective Tuffy'
-# readonly ENGINES='Random_Continuous Random_Discrete'
-# readonly ENGINES='ProbLog_NonCollective'
-# readonly ENGINES='ProbLog'
-# readonly ENGINES='PSL'
 
 declare -A ENGINE_OPTIONS
 ENGINE_OPTIONS['PSL']='--option runtime.log.level DEBUG --option runtime.db.type Postgres --option runtime.db.pg.name psl'
 
-readonly TIMEOUT_DURATION='3h'
+# These engines all use PSL for grounding.
+ENGINE_OPTIONS['Logic_Weighted_Discrete']="${ENGINE_OPTIONS['PSL']}"
+ENGINE_OPTIONS['MLN_Native']="${ENGINE_OPTIONS['PSL']}"
+ENGINE_OPTIONS['MLN_PySAT']="${ENGINE_OPTIONS['PSL']}"
+ENGINE_OPTIONS['ProbLog']="${ENGINE_OPTIONS['PSL']}"
+ENGINE_OPTIONS['ProbLog_NonCollective']="${ENGINE_OPTIONS['PSL']}"
+
+readonly TIMEOUT_DURATION='2h'
 readonly TIMEOUT_CLEANUP_TIME='5m'
 
 function run_srli() {
@@ -60,6 +58,12 @@ function run_srli() {
         echo '-- TIMEOUT --' >> "${outPath}"
     fi
 
+    # Make sure the Tuffy docker container is not running.
+    local containerID=$(docker ps | grep srli.tuffy | head -n 1 | sed 's/.*tcp\s\+\(srli.tuffy_.*\)$/\1/')
+    if [[ -n "${containerID}" ]] ; then
+        docker stop "${containerID}"
+    fi
+
     date +%s > "${endPath}"
 }
 
@@ -73,7 +77,7 @@ function run_example() {
     for engine in ${ENGINES} ; do
         local outDir="${baseOutDir}/engine::${engine}"
 
-        local options="--engine ${engine}"
+        local options="--skip-learning --print-pipeline --engine ${engine}"
         if [[ -n "${ENGINE_OPTIONS[${engine}]}" ]] ; then
             options="${options} ${ENGINE_OPTIONS[${engine}]}"
         fi
