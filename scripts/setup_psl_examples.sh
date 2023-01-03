@@ -7,7 +7,7 @@ readonly BASE_DIR=$(realpath "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 readonly PSL_EXAMPLES_DIR="${BASE_DIR}/psl-examples"
 readonly PSL_EXAMPLES_REPO='https://github.com/linqs/psl-examples.git'
 # TODO(eriq): Pin to a tag.
-readonly PSL_EXAMPLES_BRANCH="json-config"
+readonly PSL_EXAMPLES_BRANCH="main"
 
 function fetch_psl_examples() {
    if [ -e ${PSL_EXAMPLES_DIR} ]; then
