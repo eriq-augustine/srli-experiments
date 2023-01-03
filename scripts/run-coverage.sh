@@ -3,69 +3,18 @@
 # Run the crossproduct of examples and methods.
 
 readonly THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-readonly BASE_OUT_DIR="${THIS_DIR}/../results"
-readonly EXAMPLES_DIR="${THIS_DIR}/../psl-examples"
+
+source "${THIS_DIR}/common.sh"
 
 # An identifier to differentiate the output of this script/experiment from other scripts.
 readonly RUN_ID='coverage'
 
 readonly NUM_RUNS=1
 
-readonly SMALL_EXAMPLES='smokers stance-createdebate stance-4forums simple-acquaintances user-modeling citeseer cora friendship trust-prediction epinions social-network-analysis'
-readonly MEDIUM_EXAMPLES='jester knowledge-graph-identification'
-readonly LARGE_EXAMPLES='entity-resolution drug-drug-interaction yelp lastfm'
-readonly HUGE_EXAMPLES='imdb-er'
-
 readonly RUN_EXAMPLES="${SMALL_EXAMPLES} ${MEDIUM_EXAMPLES} ${LARGE_EXAMPLES}"
 
-# readonly ENGINES='Random_Continuous Random_Discrete PSL Logic_Weighted_Discrete MLN_Native MLN_PySAT ProbLog_NonCollective Tuffy ProbLog'
-readonly ENGINES='Random_Continuous Random_Discrete PSL Logic_Weighted_Discrete MLN_Native MLN_PySAT ProbLog_NonCollective Tuffy'
-
-declare -A ENGINE_OPTIONS
-ENGINE_OPTIONS['PSL']='--option runtime.log.level DEBUG --option runtime.db.type Postgres --option runtime.db.pg.name psl'
-
-# These engines all use PSL for grounding.
-ENGINE_OPTIONS['Logic_Weighted_Discrete']="${ENGINE_OPTIONS['PSL']}"
-ENGINE_OPTIONS['MLN_Native']="${ENGINE_OPTIONS['PSL']}"
-ENGINE_OPTIONS['MLN_PySAT']="${ENGINE_OPTIONS['PSL']}"
-ENGINE_OPTIONS['ProbLog']="${ENGINE_OPTIONS['PSL']}"
-ENGINE_OPTIONS['ProbLog_NonCollective']="${ENGINE_OPTIONS['PSL']}"
-
-readonly TIMEOUT_DURATION='2h'
-readonly TIMEOUT_CLEANUP_TIME='5m'
-
-function run_srli() {
-    local jsonConfigPath=$1
-    local outDir=$2
-    local options=$3
-
-    mkdir -p "${outDir}"
-
-    local outPath="${outDir}/out.txt"
-    local errPath="${outDir}/out.err"
-    local startPath="${outDir}/start.txt"
-    local endPath="${outDir}/end.txt"
-
-    if [[ -e "${endPath}" ]]; then
-        echo "Output already exists, skipping: ${outDir}"
-        return 0
-    fi
-
-    date +%s > "${startPath}"
-
-    timeout --kill-after "${TIMEOUT_CLEANUP_TIME}" "${TIMEOUT_DURATION}" python3 -m srli.pipeline "${jsonConfigPath}" ${options} > "${outPath}" 2> "${errPath}"
-    if [[ $? -eq 124 ]] ; then
-        echo '-- TIMEOUT --' >> "${outPath}"
-    fi
-
-    # Make sure the Tuffy docker container is not running.
-    local containerID=$(docker ps | grep srli.tuffy | head -n 1 | sed 's/.*tcp\s\+\(srli.tuffy_.*\)$/\1/')
-    if [[ -n "${containerID}" ]] ; then
-        docker stop "${containerID}"
-    fi
-
-    date +%s > "${endPath}"
-}
+# readonly ENGINES="${ALL_ENGINES}"
+readonly ENGINES="${STABLE_ENGINES}"
 
 function run_example() {
     local jsonConfigPath=$1
