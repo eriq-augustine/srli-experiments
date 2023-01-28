@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-Analyze the results.
+Analyze the results for the "quality" experiment.
 The input to this script should be the output from parse-results.py, ex:
 ```
 ./scripts/parse-results.py > results.txt
@@ -14,10 +14,23 @@ import os
 import sqlite3
 import sys
 
+ENGINES = [
+    'Logic_Weighted_Discrete',
+    'MLN_Native',
+    'MLN_PySAT',
+    'ProbLog',
+    'ProbLog_NonCollective',
+    'PSL',
+    'Random_Continuous',
+    'Random_Discrete',
+    'Tuffy',
+]
+
 # Get the base rows.
 BASE_QUERY = '''
     SELECT *
     FROM Stats
+    WHERE experiment == 'quality'
 '''
 
 # Aggregate over splits and iterations.
@@ -57,6 +70,32 @@ AGGREGATE_QUERY = '''
         S.eval_1_id
 '''
 
+FULL_TABLE_QUERY = '''
+    WITH A AS (
+        ''' + AGGREGATE_QUERY + '''
+    )
+    SELECT
+        E.example,
+        ''' + ', '.join(["""(
+            SELECT
+                CAST(ROUND(eval_0_value_mean, 2) AS TEXT)
+                    || ' ± '
+                    || CAST(ROUND(eval_0_value_std, 2) AS TEXT)
+            FROM A
+            WHERE
+                A.example = E.example
+                AND A.engine = '%s'
+        ) AS '%s'""" % (engine, engine) for engine in ENGINES]) + '''
+    FROM
+        (
+            SELECT DISTINCT example
+            FROM
+                (
+                    ''' + BASE_QUERY + '''
+                )
+        ) E
+'''
+
 BOOL_COLUMNS = {
     'timeout'
 }
@@ -83,6 +122,10 @@ RUN_MODES = {
     'AGGREGATE': (
         AGGREGATE_QUERY,
         'Aggregate over iteration and split.',
+    ),
+    'FULL_TABLE': (
+        FULL_TABLE_QUERY,
+        'Get the full aggregate table.',
     ),
 }
 
