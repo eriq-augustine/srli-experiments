@@ -16,15 +16,21 @@ LOG_FILENAME = 'out.txt'
 HEADER = [
     # Identifiers
     'experiment',
-    'example',
     'iteration',
+    'example',
+    'split',
     'engine',
     # Results
     'runtime',
     'learn_time',
     'infer_time',
     'timeout',
-    'eval',
+    # Eval
+    'eval_0_id',
+    'eval_0_value',
+    'eval_1_id',
+    'eval_1_value',
+    'eval_raw',
 ]
 
 # All times are in sec.
@@ -106,7 +112,14 @@ def parseLog(logPath):
         results['learn_time'] = -1
         results['infer_time'] = -1
 
-    results['eval'] = ';'.join([str(eval_info) for eval_info in evals])
+    results['eval_raw'] = ';'.join([str(eval_info) for eval_info in evals])
+
+    for i in range(len(evals)):
+        if (i >= 2):
+            break
+
+        results["eval_%d_id" % (i)] = "%s: %s" % (evals[i][0], evals[i][1])
+        results["eval_%d_value" % (i)] = evals[i][2]
 
     return results
 
