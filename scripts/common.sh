@@ -53,9 +53,11 @@ function run_srli() {
     fi
 
     # Make sure the Tuffy docker container is not running.
-    local containerID=$(docker ps | grep srli.tuffy | head -n 1 | sed 's/.*tcp\s\+\(srli.tuffy_.*\)$/\1/')
-    if [[ -n "${containerID}" ]] ; then
-        docker stop "${containerID}"
+    local containerID=$(docker ps 2> /dev/null | grep srli.tuffy | head -n 1 | sed 's/.*tcp\s\+\(srli.tuffy_.*\)$/\1/')
+    if [[ $? -eq 0 ]] ; then
+        if [[ -n "${containerID}" ]] ; then
+            docker stop "${containerID}"
+        fi
     fi
 
     date +%s > "${endPath}"
