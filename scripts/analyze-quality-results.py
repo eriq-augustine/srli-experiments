@@ -15,15 +15,30 @@ import sqlite3
 import sys
 
 ENGINES = [
-    'Logic_Weighted_Discrete',
+    # 'Logic_Weighted_Discrete',
     'MLN_Native',
     'MLN_PySAT',
-    'ProbLog',
+    # 'ProbLog',
     'ProbLog_NonCollective',
     'PSL',
+    # 'Random_Continuous',
+    # 'Random_Discrete',
+    'Tuffy',
+]
+
+IGNORE_TABLE_ENGINES = [
     'Random_Continuous',
     'Random_Discrete',
-    'Tuffy',
+    'ProbLog',
+]
+
+IGNORE_TABLE_EXAMPLES = [
+    'friendship',
+    'simple-acquaintances',
+    'smokers',
+    'stance-4forums',
+    'trust-prediction',
+    'user-modeling',
 ]
 
 # Get the base rows.
@@ -46,8 +61,10 @@ AGGREGATE_QUERY = '''
         STDEV(S.learn_time) AS learn_time_std,
         AVG(S.infer_time) AS infer_time_mean,
         STDEV(S.infer_time) AS infer_time_std,
+        S.eval_0_id,
         AVG(S.eval_0_value) AS eval_0_value_mean,
         STDEV(S.eval_0_value) AS eval_0_value_std,
+        S.eval_1_id,
         AVG(S.eval_1_value) AS eval_1_value_mean,
         STDEV(S.eval_1_value) AS eval_1_value_std
     FROM
@@ -75,7 +92,7 @@ FULL_TABLE_QUERY = '''
         ''' + AGGREGATE_QUERY + '''
     )
     SELECT
-        E.example,
+        E.example || ' (' || E.eval_0_id || ')' AS 'Dataset',
         ''' + ', '.join(["""(
             SELECT
                 CAST(ROUND(eval_0_value_mean, 2) AS TEXT)
@@ -88,13 +105,56 @@ FULL_TABLE_QUERY = '''
         ) AS '%s'""" % (engine, engine) for engine in ENGINES]) + '''
     FROM
         (
-            SELECT DISTINCT example
+            SELECT DISTINCT
+                example,
+                eval_0_id
             FROM
                 (
                     ''' + BASE_QUERY + '''
                 )
+            WHERE
+                eval_0_id IS NOT NULL
         ) E
+    ORDER BY
+        E.example
 '''
+
+# Replace: "__label__" and "__value__"
+BASE_TABLE_QUERY = '''
+    WITH A AS (
+        ''' + AGGREGATE_QUERY + '''
+    )
+    SELECT
+        E.example || ' (' || E.__label__ || ')' AS 'Dataset',
+        ''' + ', '.join(["""(
+            SELECT
+                CAST(ROUND(__value___mean, 2) AS TEXT)
+                    || ' ± '
+                    || CAST(ROUND(__value___std, 2) AS TEXT)
+            FROM A
+            WHERE
+                A.example = E.example
+                AND A.engine = '%s'
+        ) AS '%s'""" % (engine, engine) for engine in list(sorted(set(ENGINES) - set(IGNORE_TABLE_ENGINES)))]) + '''
+    FROM
+        (
+            SELECT DISTINCT
+                example,
+                __label__
+            FROM
+                (
+                    ''' + BASE_QUERY + '''
+                )
+            WHERE
+                __label__ IS NOT NULL
+                AND example NOT IN (''' + ", ".join(["'%s'" % (example) for example in IGNORE_TABLE_EXAMPLES]) + ''')
+        ) E
+    ORDER BY
+        E.example
+'''
+
+TABLE_QUERY = BASE_TABLE_QUERY.replace('__label__', 'eval_0_id').replace('__value__', 'eval_0_value')
+RUNTIME_TABLE_QUERY = BASE_TABLE_QUERY.replace('__label__', "example").replace('__value__', 'runtime')
 
 BOOL_COLUMNS = {
     'timeout'
@@ -126,6 +186,14 @@ RUN_MODES = {
     'FULL_TABLE': (
         FULL_TABLE_QUERY,
         'Get the full aggregate table.',
+    ),
+    'TABLE': (
+        TABLE_QUERY,
+        'Get the aggregate table with some data dropped.',
+    ),
+    'RUNTIME_TABLE': (
+        RUNTIME_TABLE_QUERY,
+        'Get the aggregate runtime table with some data dropped.',
     ),
 }
 
